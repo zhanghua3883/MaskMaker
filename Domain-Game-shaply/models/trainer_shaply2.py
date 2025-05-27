@@ -576,7 +576,7 @@ class Trainer(BasicTrainer):
         self.loss_wce       = (loss_wce).data
         self.loss_recon     = loss_recon #.data
         self.loss_feature   = feature_loss # .data
-
+        # ==== 新增1：Shaply值计算 ====
          # 获取交互输出
         joint_output = outputs['joint_output']
         # 获取单独分割输出
@@ -591,7 +591,7 @@ class Trainer(BasicTrainer):
                          loss_wce * lambda_wce +
                          loss_recon + domain_loss + feature_loss + loss_interaction * 1) * lambda_Seg  #
 
-        # ==== 新增：互信息损失计算 变分下届 ====
+        # ==== 新增2：互信息损失计算 变分下届 ====
         # 获取最后一层解剖和域特征（假设最后一层索引为-1）
         domain_feature_a = outputs['enc_features']  # 解剖特征
         domain_feature_at = outputs['domain_features']  # 域特征
@@ -617,8 +617,11 @@ class Trainer(BasicTrainer):
         # 计算互信息下界
         mi_loss = (log_q - log_p).mean()
         mi_loss = max(mi_loss, 0)
-        self.mi_loss = mi_loss * 0.1
-
+        self.mi_loss = mi_loss  ###发现存在问题，mi_loss一直为0，说明域特征和解剖特征之间没有关联或很小
+        
+        self.loss_seg = (loss_dice * lambda_dice +
+                         loss_wce * lambda_wce +
+                         loss_recon + domain_loss + feature_loss + loss_interaction + mi_loss) * lambda_Seg  #
         return preds, pred_all, 0
 
     def get_feature_loss(self, feat_a, feat_b, kl=False):
